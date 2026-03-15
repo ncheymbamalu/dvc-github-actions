@@ -1,0 +1,64 @@
+name: data-pipeline
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # pipeline will run every hour; https://crontab.guru/#0_*_*_*_*
+  workflow_dispatch:  # allows a manual trigger via GitHub UI
+
+permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+      id-token: write
+
+jobs:
+  data_pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+            python-version-file: "pyproject.toml"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install DVC
+        uses: iterative/setup-dvc@v1
+
+      - name: Create gdrive_credentials.json
+        env:
+          GDRIVE_CREDS: ${{ secrets.GDRIVE_CREDENTIALS }}
+        run: echo "$GDRIVE_CREDS" > gdrive_credentials.json
+
+      - name: Configure DVC
+        run: dvc remote modify myremote --local gdrive_user_credentials_file gdrive_credentials.json
+
+      - name: Execute pipeline
+        run: make data_pipeline
+
+      - name: Check for changes
+        id: dvc-check
+        # dvc status exits with 1 if data changed. The || catches the 1 and sets the variable.
+        run: dvc status --quiet || echo "CHANGES=true" >> $GITHUB_ENV
+
+      - name: Configure Git
+        if: env.CHANGES == 'true'
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        if: env.CHANGES == 'true'
+        run: make update_artifacts
+
+      - name: Clean up repo
+        run: |
+          make clean
+          rm -rf artifacts
