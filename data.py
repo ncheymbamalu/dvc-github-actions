@@ -1,7 +1,6 @@
 """Script that executes a data processing workflow."""
 
 import sys
-import time
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
