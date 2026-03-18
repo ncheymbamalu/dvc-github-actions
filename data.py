@@ -30,23 +30,17 @@ between 1 and 31, inclusive."
         plan: pl.LazyFrame = pl.scan_parquet(path)
         data: pl.DataFrame = (
             plan
-            .join(
-                other=(
-                    plan
-                    .group_by("company_id")
-                    .agg(pl.min("timestamp_utc").alias("min_timestamp"))
-                    .select(
-                        "company_id",
-                        (pl.lit(OFFSET_DATE) - pl.col("min_timestamp")).alias("offset")
-                    )
-                ),
-                how="left",
-                on="company_id",
-                maintain_order="left"
+            .with_columns(
+                pl.col("timestamp_utc")
+                .min()
+                .over(partition_by="company_id")
+                .alias("min_timestamp")
             )
-            .with_columns(pl.col("timestamp_utc") + pl.col("offset"))
+            .with_columns(
+                pl.col("timestamp_utc") + (pl.lit(OFFSET_DATE) - pl.col("min_timestamp"))
+            )
             .filter(pl.col("timestamp_utc").is_between(start, end))
-            .drop("offset")
+            .drop("min_timestamp")
             .collect()
             .upsample(
                 time_column="timestamp_utc",
@@ -77,4 +71,4 @@ between 1 and 31, inclusive."
 
 if __name__ == "__main__":
     process_data(look_back_period=int(sys.argv[1]))
-    print(pl.scan_parquet(DATA_DIR / "processed.parquet").collect())
+    print(pl.scan_parquet(DATA_DIR / "processed.parquet").limit(5).collect())
