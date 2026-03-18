@@ -6,10 +6,10 @@ on:
   workflow_dispatch:  # allows a manual trigger via GitHub UI
 
 permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
-      id-token: write
+  contents: write
+  pull-requests: write
+  repository-projects: write
+  id-token: write
 
 jobs:
   data_pipeline:

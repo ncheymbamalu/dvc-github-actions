@@ -10,3 +10,9 @@ dependencies = [
     "polars>=1.39.0",
     "pyarrow>=23.0.1",
 ]
+
+[dependency-groups]
+dev = [
+    "ipywidgets>=8.1.8",
+    "jupyter>=1.1.1",
+]
