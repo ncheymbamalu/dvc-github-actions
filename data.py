@@ -18,7 +18,7 @@ def process_data(look_back_period: int) -> None:
     processes it, and writes the processed data to `./artifacts/data/processed.parquet`.
 
     Args:
-        lookback_period (int): The number of previous data points (days) to use for
+        look_back_period (int): The number of previous data points (days) to use for
         filtering the raw data with respect to the current hour. 
     """
     try:
